@@ -1,12 +1,9 @@
 import 'dart:io';
 
-import 'package:esys_flutter_share/esys_flutter_share.dart';
+import 'package:share_extend/share_extend.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'package:intent/action.dart' as acao;
-// import 'package:intent/extra.dart';
-// import 'package:intent/intent.dart' as tela;
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,6 +25,9 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+      ),
       home: MainPage(),
     );
   }
@@ -41,8 +41,8 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   File _image;
   final picker = ImagePicker();
-  String cliente,
-      mac,
+  String cliente = '';
+  String mac,
       cto,
       sinalCto,
       sinalCliente,
@@ -53,6 +53,7 @@ class _MainPageState extends State<MainPage> {
       provisionar,
       remoto,
       textoASerEnviado;
+  String path = '';
   bool boxCadastrar = false;
   bool boxPPPOE = false;
   bool boxTV = false;
@@ -86,6 +87,8 @@ class _MainPageState extends State<MainPage> {
     cto = prefs.getString('cto');
     sinalCto = prefs.getString('sinalCto');
     referencias = prefs.getString('referencias');
+    path = prefs.getString('path');
+    _image = File(path);
     setState(() {
       _controllerCto = TextEditingController(text: cto);
       _controllerSinalCto = TextEditingController(text: sinalCto);
@@ -93,25 +96,95 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  Future<void> cleanData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cto', '');
+    await prefs.setString('sinalCto', '');
+    await prefs.setString('referencias', '');
+    await prefs.setString('path', '');
+    path = '';
+    setState(() {
+      _controllerCto = TextEditingController(text: '');
+      _controllerSinalCto = TextEditingController(text: '');
+      _controllerRef = TextEditingController(text: '');
+    });
+  }
+
   Future getImage() async {
     pickedFile = await picker.getImage(source: ImageSource.camera);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('path', pickedFile.path);
+    path = pickedFile.path;
     setState(() {
       if (pickedFile != null) {
         _image = File(pickedFile.path);
       } else {
-        print('Nenhuma imagem selecionada');
+        print('Nenhuma foto tirada!');
       }
     });
   }
 
-  Future<void> _shareImage() async {
-    try {
-      final ByteData bytes = await rootBundle.load(pickedFile.path);
-      await Share.file(
-          'anilha', 'anilha.jpg', bytes.buffer.asUint8List(), 'image/jpg',
-          text: textoASerEnviado);
-    } catch (e) {
-      print('Erro: $e');
+  // Future<void> setPath() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   await prefs.setString('path', '');
+  // }
+
+  Widget _decideImage() {
+    if (path.isEmpty) {
+      //setPath();
+      return Expanded(
+          child: Text(
+        'Foto da anilha',
+        style: TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      ));
+    } else {
+      return Expanded(
+        child: Image.file(_image),
+      );
+    }
+  }
+
+  void enviar(BuildContext context) {
+    if (boxCadastrar) {
+      cadastrar = '\nPrecisa cadastrar';
+    } else {
+      cadastrar = '';
+    }
+    if (boxPPPOE) {
+      pppoe = '\nManda o PPPoE';
+    } else {
+      pppoe = '';
+    }
+    if (boxTV) {
+      tv = '\nPossui TV';
+    } else {
+      tv = '';
+    }
+    if (boxProvisionar) {
+      provisionar = '\nErro ao provisionar';
+    } else {
+      provisionar = '';
+    }
+    if (boxRemoto) {
+      remoto = '\nAcesso remoto liberado';
+    } else {
+      remoto = '';
+    }
+    if (cliente.isEmpty != true) {
+      if (path.isEmpty == false) {
+        textoASerEnviado =
+            'Liberar $selectedService:\nNome: $cliente\nMAC: $mac\nCTO: $cto $sinalCto\nSinal: $sinalCliente\nReferências: $referencias$cadastrar$pppoe$tv$provisionar$remoto';
+        ShareExtend.share(path, 'image', extraText: textoASerEnviado);
+      } else {
+        final snackBar = SnackBar(
+          content: Text('Favor tirar foto da anilha'),
+        );
+        Scaffold.of(context).showSnackBar(snackBar);
+      }
+    } else {
+      final snackBar = SnackBar(content: Text("Campos vazios!"));
+      Scaffold.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -127,19 +200,31 @@ class _MainPageState extends State<MainPage> {
       appBar: AppBar(
         title: Text('Liberação'),
         actions: [
-          // IconButton(
-          //   icon: Icon(
-          //     Icons.list,
-          //     color: Colors.white,
-          //   ),
-          //   onPressed: () {},
-          // ),
-          IconButton(
-            icon: Icon(Icons.save),
-            onPressed: () {
-              saveData();
+          Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: Icon(
+                  Icons.delete,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  cleanData();
+                  final snackBar = SnackBar(content: Text("Campos limpos!"));
+                  Scaffold.of(context).showSnackBar(snackBar);
+                },
+              );
             },
           ),
+          Builder(builder: (BuildContext context) {
+            return IconButton(
+              icon: Icon(Icons.save),
+              onPressed: () {
+                saveData();
+                final snackBar = SnackBar(content: Text("Campos salvos!"));
+                Scaffold.of(context).showSnackBar(snackBar);
+              },
+            );
+          }),
           Builder(builder: (BuildContext context) {
             return IconButton(
                 icon: Icon(
@@ -147,45 +232,7 @@ class _MainPageState extends State<MainPage> {
                   color: Colors.white,
                 ),
                 onPressed: () {
-                  if (boxCadastrar) {
-                    cadastrar = '\nPrecisa cadastrar';
-                  } else {
-                    cadastrar = '';
-                  }
-                  if (boxPPPOE) {
-                    pppoe = '\nManda o PPPoE';
-                  } else {
-                    pppoe = '';
-                  }
-                  if (boxTV) {
-                    tv = '\nPossui TV';
-                  } else {
-                    tv = '';
-                  }
-                  if (boxProvisionar) {
-                    provisionar = '\nErro ao provisionar';
-                  } else {
-                    provisionar = '';
-                  }
-                  if (boxRemoto) {
-                    remoto = '\nAcesso remoto liberado';
-                  } else {
-                    remoto = '';
-                  }
-                  if (cliente != null) {
-                    // tela.Intent()
-                    //   ..setAction(acao.Action.ACTION_SEND)
-                    //   ..setType('text/plain')
-                    //   ..putExtra(Extra.EXTRA_TEXT,
-                    //       'Liberar $selectedService:\nNome: $cliente\nMAC: $mac\nCTO: $cto $sinalCto\nSinal: $sinalCliente\nReferências: $referencias$cadastrar$pppoe$tv$provisionar$remoto')
-                    //   ..startActivity().catchError((e) => print(e));
-                    textoASerEnviado =
-                        'Liberar $selectedService:\nNome: $cliente\nMAC: $mac\nCTO: $cto $sinalCto\nSinal: $sinalCliente\nReferências: $referencias$cadastrar$pppoe$tv$provisionar$remoto';
-                    _shareImage();
-                  } else {
-                    final snackBar = SnackBar(content: Text("Campos vazios!"));
-                    Scaffold.of(context).showSnackBar(snackBar);
-                  }
+                  enviar(context);
                 });
           }),
         ],
@@ -266,7 +313,7 @@ class _MainPageState extends State<MainPage> {
                   SizedBox(
                     width: 10,
                   ),
-                  FlatButton(
+                  RaisedButton(
                     onPressed: () => readBarcode(),
                     child: Text('Capturar MAC'),
                   ),
@@ -325,49 +372,71 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ],
               ),
-              ListTile(
-                visualDensity: VisualDensity.compact,
-                title: Text('PON/REG apagado?'),
-                trailing: Checkbox(
-                    value: boxCadastrar,
-                    onChanged: (value) {
-                      setState(() {
-                        boxCadastrar = value;
-                      });
-                    }),
+              SizedBox(
+                height: 20,
               ),
-              ListTile(
-                visualDensity: VisualDensity.compact,
-                title: Text('Precisa do PPPoE?'),
-                trailing: Checkbox(
-                    value: boxPPPOE,
-                    onChanged: (value) {
-                      setState(() {
-                        boxPPPOE = value;
-                      });
-                    }),
+              Row(
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      visualDensity: VisualDensity.compact,
+                      title: Text('PON/REG apagado?'),
+                      trailing: Checkbox(
+                          value: boxCadastrar,
+                          onChanged: (value) {
+                            setState(() {
+                              boxCadastrar = value;
+                            });
+                          }),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListTile(
+                      visualDensity: VisualDensity.compact,
+                      title: Text('Precisa do PPPoE?'),
+                      trailing: Checkbox(
+                          value: boxPPPOE,
+                          onChanged: (value) {
+                            setState(() {
+                              boxPPPOE = value;
+                            });
+                          }),
+                    ),
+                  ),
+                ],
               ),
-              ListTile(
-                visualDensity: VisualDensity.compact,
-                title: Text('Possui TV??'),
-                trailing: Checkbox(
-                    value: boxTV,
-                    onChanged: (value) {
-                      setState(() {
-                        boxTV = value;
-                      });
-                    }),
-              ),
-              ListTile(
-                visualDensity: VisualDensity.compact,
-                title: Text('Problema ao Provisionar?'),
-                trailing: Checkbox(
-                    value: boxProvisionar,
-                    onChanged: (value) {
-                      setState(() {
-                        boxProvisionar = value;
-                      });
-                    }),
+              Row(
+                children: [
+                  Expanded(
+                    child: ListTile(
+                      visualDensity: VisualDensity.compact,
+                      title: Text('Tem TV?'),
+                      trailing: Checkbox(
+                          value: boxTV,
+                          onChanged: (value) {
+                            setState(() {
+                              boxTV = value;
+                            });
+                          }),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListTile(
+                      visualDensity: VisualDensity.compact,
+                      title: Text(
+                        'Provisionado?',
+                        style: TextStyle(fontSize: 12.5),
+                      ),
+                      trailing: Checkbox(
+                          value: boxProvisionar,
+                          onChanged: (value) {
+                            setState(() {
+                              boxProvisionar = value;
+                            });
+                          }),
+                    ),
+                  ),
+                ],
               ),
               ListTile(
                 visualDensity: VisualDensity.compact,
@@ -380,12 +449,18 @@ class _MainPageState extends State<MainPage> {
                       });
                     }),
               ),
-              _image == null ? Text('Nenhuma foto tirada') : Image.file(_image),
-              FloatingActionButton(
-                mini: true,
-                onPressed: getImage,
-                tooltip: 'Tirar Foto',
-                child: Icon(Icons.add_a_photo),
+              Row(
+                children: [
+                  _decideImage(),
+                  Expanded(
+                    child: FloatingActionButton(
+                      mini: true,
+                      onPressed: getImage,
+                      tooltip: 'Tirar Foto',
+                      child: Icon(Icons.add_a_photo),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -15,12 +15,11 @@ import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry;
 public final class GeneratedPluginRegistrant {
   public static void registerWith(@NonNull FlutterEngine flutterEngine) {
     ShimPluginRegistry shimPluginRegistry = new ShimPluginRegistry(flutterEngine);
-      de.esys.esysfluttershare.EsysFlutterSharePlugin.registerWith(shimPluginRegistry.registrarFor("de.esys.esysfluttershare.EsysFlutterSharePlugin"));
     flutterEngine.getPlugins().add(new com.amolg.flutterbarcodescanner.FlutterBarcodeScannerPlugin());
     flutterEngine.getPlugins().add(new io.flutter.plugins.flutter_plugin_android_lifecycle.FlutterAndroidLifecyclePlugin());
     flutterEngine.getPlugins().add(new io.flutter.plugins.imagepicker.ImagePickerPlugin());
       io.github.itzmeanjan.intent.IntentPlugin.registerWith(shimPluginRegistry.registrarFor("io.github.itzmeanjan.intent.IntentPlugin"));
-    flutterEngine.getPlugins().add(new io.flutter.plugins.pathprovider.PathProviderPlugin());
+    flutterEngine.getPlugins().add(new com.zt.shareextend.ShareExtendPlugin());
     flutterEngine.getPlugins().add(new io.flutter.plugins.sharedpreferences.SharedPreferencesPlugin());
   }
 }

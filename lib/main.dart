@@ -53,7 +53,7 @@ class _MainPageState extends State<MainPage> {
       provisionar,
       remoto,
       textoASerEnviado;
-  String path = '';
+  String path;
   bool boxCadastrar = false;
   bool boxPPPOE = false;
   bool boxTV = false;
@@ -88,7 +88,7 @@ class _MainPageState extends State<MainPage> {
     sinalCto = prefs.getString('sinalCto');
     referencias = prefs.getString('referencias');
     path = prefs.getString('path');
-    _image = File(path);
+    path == null ? print('nenhuma foto') : _image = File(path);
     setState(() {
       _controllerCto = TextEditingController(text: cto);
       _controllerSinalCto = TextEditingController(text: sinalCto);
@@ -102,7 +102,7 @@ class _MainPageState extends State<MainPage> {
     await prefs.setString('sinalCto', '');
     await prefs.setString('referencias', '');
     await prefs.setString('path', '');
-    path = '';
+    path = null;
     setState(() {
       _controllerCto = TextEditingController(text: '');
       _controllerSinalCto = TextEditingController(text: '');
@@ -130,7 +130,7 @@ class _MainPageState extends State<MainPage> {
   // }
 
   Widget _decideImage() {
-    if (path.isEmpty) {
+    if (_image == null) {
       //setPath();
       return Expanded(
           child: Text(
@@ -172,19 +172,19 @@ class _MainPageState extends State<MainPage> {
       remoto = '';
     }
     if (cliente.isEmpty != true) {
-      if (path.isEmpty == false) {
+      if (path != null) {
         textoASerEnviado =
-            'Liberar $selectedService:\nNome: $cliente\nMAC: $mac\nCTO: $cto $sinalCto\nSinal: $sinalCliente\nReferências: $referencias$cadastrar$pppoe$tv$provisionar$remoto';
+            'Liberar $selectedService:\nNome: ```$cliente```\nMAC: ```$mac```\nCTO: $cto sinal *-$sinalCto*\nSinal no cliente: *-$sinalCliente*\nReferências: ```$referencias```$cadastrar$pppoe$tv$provisionar$remoto';
         ShareExtend.share(path, 'image', extraText: textoASerEnviado);
       } else {
         final snackBar = SnackBar(
           content: Text('Favor tirar foto da anilha'),
         );
-        Scaffold.of(context).showSnackBar(snackBar);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     } else {
       final snackBar = SnackBar(content: Text("Campos vazios!"));
-      Scaffold.of(context).showSnackBar(snackBar);
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -210,7 +210,7 @@ class _MainPageState extends State<MainPage> {
                 onPressed: () {
                   cleanData();
                   final snackBar = SnackBar(content: Text("Campos limpos!"));
-                  Scaffold.of(context).showSnackBar(snackBar);
+                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
                 },
               );
             },
@@ -221,7 +221,7 @@ class _MainPageState extends State<MainPage> {
               onPressed: () {
                 saveData();
                 final snackBar = SnackBar(content: Text("Campos salvos!"));
-                Scaffold.of(context).showSnackBar(snackBar);
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
               },
             );
           }),
@@ -313,7 +313,7 @@ class _MainPageState extends State<MainPage> {
                   SizedBox(
                     width: 10,
                   ),
-                  RaisedButton(
+                  ElevatedButton(
                     onPressed: () => readBarcode(),
                     child: Text('Capturar MAC'),
                   ),
@@ -341,6 +341,7 @@ class _MainPageState extends State<MainPage> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Sinal',
+                        hintText: 'Não precisa do "-"',
                       ),
                     ),
                   ),
@@ -354,6 +355,7 @@ class _MainPageState extends State<MainPage> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Sinal do Cliente',
+                        hintText: 'Não precisa do "-"',
                       ),
                     ),
                   ),
